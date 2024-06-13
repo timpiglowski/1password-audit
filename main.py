@@ -3,13 +3,18 @@ import subprocess
 import sys
 import time
 
-# Define the ideal password length
+# Define the default ideal password length and ownership tag
 IDEAL_PASSWORD_LENGTH = 64
+OWNERSHIP_TAG = "Fremdaccount"
+
+# Parse command-line arguments
 if len(sys.argv) > 1:
     try:
         IDEAL_PASSWORD_LENGTH = int(sys.argv[1])
     except ValueError:
         print("Invalid input for ideal password length. Using default value of 64.")
+    if len(sys.argv) > 2:
+        OWNERSHIP_TAG = sys.argv[2]
 
 # Function to print in green
 def print_green(text):
@@ -24,9 +29,10 @@ def print_red(text):
     print(f"\033[0;31m{text}\033[0m")
 
 class VaultItem:
-    def __init__(self, item_id, title):
+    def __init__(self, item_id, title, tags):
         self.item_id = item_id
         self.title = title
+        self.tags = tags
         self.password = None
         self.failed_tests = []
 
@@ -47,7 +53,10 @@ class VaultItem:
     def check_password_length(self, ideal_length):
         if self.password:
             if len(self.password) < ideal_length:
-                self.failed_tests.append({"test": "password_length", "message": f"Password too short: {len(self.password)} characters", "critical": True})
+                if OWNERSHIP_TAG in self.tags:
+                    self.failed_tests.append({"test": "password_length", "message": f"Password too short: {len(self.password)} characters, but tagged as somebody else's account", "critical": False})
+                else:
+                    self.failed_tests.append({"test": "password_length", "message": f"Password too short: {len(self.password)} characters", "critical": True})
         else:
             self.failed_tests.append({"test": "password_presence", "message": "No password found", "critical": True})
 
@@ -85,7 +94,7 @@ failure_types = {}
 # Loop through each item
 for item in items:
     total_items += 1
-    vault_item = VaultItem(item['id'], item['title'])
+    vault_item = VaultItem(item['id'], item['title'], item.get('tags', []))
     vault_item.fetch_details()
     vault_item.check_password_length(IDEAL_PASSWORD_LENGTH)
     vault_item.print_results()
