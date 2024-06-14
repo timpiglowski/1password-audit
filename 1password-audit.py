@@ -5,8 +5,8 @@ import time
 
 # Define the default ideal password length, ownership tag, and maximum length field name
 IDEAL_PASSWORD_LENGTH = 64
-OWNERSHIP_TAG = "Fremdaccount"
-MAX_LENGTH_FIELD_NAME = "Maximallänge"
+OWNERSHIP_TAG = "Friend's Account"
+MAX_LENGTH_FIELD_NAME = "Maximum length"
 
 # Parse command-line arguments
 if len(sys.argv) > 1:

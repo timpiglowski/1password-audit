@@ -1,17 +1,23 @@
 # 1password-audit
 [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa] [![status: hibernate](https://github.com/GIScience/badges/raw/master/status/hibernate.svg)](https://github.com/GIScience/badges#hibernate)
 
-I really like having a systematical approach when it comes to storing my passwords. It gives me a sense of order, if my passwords adhere to predifined rules, and this is a script to audit a vault to ensure it adheres to them.
+This script is designed to audit your 1Password vault and ensure that all stored passwords adhere to predefined rules, providing a systematic approach to password management. By using 1Password's CLI, the script checks each password entry for compliance with specified criteria and alerts you if any entries do not meet these standards.
 
-Using [1Password's CLI](https://developer.1password.com/docs/cli), this script will audit your passwords for the specified rules and alert you, if there are entries that do not align with them.
-
-## Usage
-```python
-python3 1password-audit.py
-```
+## Features
+- Customizable Ideal Password Length: Set your desired password length (default is 64 characters).
+- Ownership Tagging: Mark accounts with specific ownership tags to handle exceptions, like storing a friend's credentials in your vault.
+- Max Length Field: Define a custom field name to specify maximum allowable password lengths.
 
 ## Dependencies
 - [1Password's CLI](https://developer.1password.com/docs/cli)
+
+## Usage
+To run the script, use the following command:
+```bash
+python3 vault_password_auditor.py [ideal_password_length] [ownership_tag] [max_length_field_name]```
+- ideal_password_length (optional): Desired length for passwords. Default is 64.
+- ownership_tag (optional): Tag for accounts that have specific ownership. Default is "Friend's account".
+- max_length_field_name (optional): Field name used to specify the maximum allowable password length. Default is "Maximum length".
 
 ## License
 This work is licensed under a
