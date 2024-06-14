@@ -3,9 +3,10 @@ import subprocess
 import sys
 import time
 
-# Define the default ideal password length and ownership tag
+# Define the default ideal password length, ownership tag, and maximum length field name
 IDEAL_PASSWORD_LENGTH = 64
 OWNERSHIP_TAG = "Fremdaccount"
+MAX_LENGTH_FIELD_NAME = "Maximallänge"
 
 # Parse command-line arguments
 if len(sys.argv) > 1:
@@ -15,25 +16,26 @@ if len(sys.argv) > 1:
         print("Invalid input for ideal password length. Using default value of 64.")
     if len(sys.argv) > 2:
         OWNERSHIP_TAG = sys.argv[2]
+    if len(sys.argv) > 3:
+        MAX_LENGTH_FIELD_NAME = sys.argv[3]
 
-# Function to print in green
 def print_green(text):
     print(f"\033[0;32m{text}\033[0m")
 
-# Function to print in yellow
 def print_yellow(text):
     print(f"\033[0;33m{text}\033[0m")
 
-# Function to print in red
 def print_red(text):
     print(f"\033[0;31m{text}\033[0m")
 
 class VaultItem:
-    def __init__(self, item_id, title, tags):
+    def __init__(self, item_id, title, category, tags):
         self.item_id = item_id
         self.title = title
+        self.category = category
         self.tags = tags
         self.password = None
+        self.max_length = None
         self.failed_tests = []
 
     def fetch_details(self):
@@ -41,6 +43,7 @@ class VaultItem:
             result = subprocess.run(['op', 'item', 'get', self.item_id, '--format', 'json'], capture_output=True, text=True, check=True)
             item_details = json.loads(result.stdout)
             self.extract_password(item_details)
+            self.extract_max_length(item_details)
         except subprocess.CalledProcessError as e:
             self.failed_tests.append({"test": "fetch_details", "message": str(e), "critical": True})
 
@@ -50,13 +53,29 @@ class VaultItem:
                 self.password = field.get('value')
                 break
 
+    def extract_max_length(self, item_details):
+        for field in item_details.get('fields', []):
+            if field.get('label') == MAX_LENGTH_FIELD_NAME:
+                try:
+                    self.max_length = int(field.get('value'))
+                except ValueError:
+                    self.max_length = None
+                break
+
     def check_password_length(self, ideal_length):
         if self.password:
-            if len(self.password) < ideal_length:
-                if OWNERSHIP_TAG in self.tags:
-                    self.failed_tests.append({"test": "password_length", "message": f"Password too short: {len(self.password)} characters, but tagged as somebody else's account", "critical": False})
+            password_length = len(self.password)
+            if password_length < ideal_length:
+                if self.max_length:
+                    if password_length == self.max_length:
+                        self.failed_tests.append({"test": "password_length", "message": f"Password matches the maximum allowed length ({self.max_length} characters)", "critical": False})
+                    else:
+                        self.failed_tests.append({"test": "password_length", "message": f"Password too short: {password_length} characters. Maximum length provided, but not used ({self.max_length} characters)", "critical": True})
                 else:
-                    self.failed_tests.append({"test": "password_length", "message": f"Password too short: {len(self.password)} characters", "critical": True})
+                    if OWNERSHIP_TAG in self.tags:
+                        self.failed_tests.append({"test": "password_length", "message": f"Password too short: {password_length} characters, but tagged as somebody else's account", "critical": False})
+                    else:
+                        self.failed_tests.append({"test": "password_length", "message": f"Password too short: {password_length} characters", "critical": True})
         else:
             self.failed_tests.append({"test": "password_presence", "message": "No password found", "critical": True})
 
@@ -90,11 +109,16 @@ total_items = 0
 severe_failures = 0
 slight_failures = 0
 failure_types = {}
+skipped_items = 0
 
 # Loop through each item
 for item in items:
+    if item['category'].lower() != 'login':
+        skipped_items += 1
+        continue
+
     total_items += 1
-    vault_item = VaultItem(item['id'], item['title'], item.get('tags', []))
+    vault_item = VaultItem(item['id'], item['title'], item['category'], item.get('tags', []))
     vault_item.fetch_details()
     vault_item.check_password_length(IDEAL_PASSWORD_LENGTH)
     vault_item.print_results()
@@ -121,6 +145,7 @@ print("\nSummary:")
 print(f"Total passwords checked: {total_items}")
 print(f"Total severe failures: {severe_failures}")
 print(f"Total slight failures: {slight_failures}")
+print(f"Total items skipped: {skipped_items}")
 print("Failure breakdown:")
 for test_type, count in failure_types.items():
     print(f"  {test_type}: {count}")
