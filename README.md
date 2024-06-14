@@ -14,7 +14,8 @@ This script is designed to audit your 1Password vault and ensure that all stored
 ## Usage
 To run the script, use the following command:
 ```bash
-python3 vault_password_auditor.py [ideal_password_length] [ownership_tag] [max_length_field_name]```
+python3 vault_password_auditor.py [ideal_password_length] [ownership_tag] [max_length_field_name]
+```
 - ideal_password_length (optional): Desired length for passwords. Default is 64.
 - ownership_tag (optional): Tag for accounts that have specific ownership. Default is "Friend's account".
 - max_length_field_name (optional): Field name used to specify the maximum allowable password length. Default is "Maximum length".
